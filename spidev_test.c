@@ -102,78 +102,6 @@ int unescape(char *_dst, char *_src, size_t len)
 	return ret;
 }
 
-int write_read(uint32_t num_out_bytes, uint8_t *out_buffer,
-             uint32_t num_in_bytes, uint8_t *in_buffer)
-{
-    struct spi_ioc_transfer mesg[2] = { 0, };
-    uint8_t num_tr = 0;
-    int ret;
-
-    if((out_buffer != NULL) && (num_out_bytes != 0))
-    {
-        mesg[0].tx_buf = (unsigned long)out_buffer;
-        mesg[0].rx_buf = (unsigned long)NULL;
-        mesg[0].len = num_out_bytes;
-        mesg[0].cs_change = 0;
-        num_tr++;
-    }
-
-    if((in_buffer != NULL) && (num_in_bytes != 0))
-    {
-        mesg[1].tx_buf = (unsigned long)NULL;
-        mesg[1].rx_buf = (unsigned long)in_buffer;
-        mesg[1].len = num_in_bytes;
-        num_tr++;
-    }
-
-    if(num_tr > 0)
-    {
-        ret = ioctl(global_fd, SPI_IOC_MESSAGE(num_tr), mesg);
-        if(ret == 1)
-        {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-int write_write(uint32_t num_out1_bytes, uint8_t *out1_buffer,
-             uint32_t num_out2_bytes, uint8_t *out2_buffer)
-{
-    struct spi_ioc_transfer mesg[2] = { 0, };
-    uint8_t num_tr = 0;
-    int ret;
-
-    if((out1_buffer != NULL) && (num_out1_bytes != 0))
-    {
-        mesg[0].tx_buf = (unsigned long)out1_buffer;
-        mesg[0].rx_buf = (unsigned long)NULL;
-        mesg[0].len = num_out1_bytes;
-        mesg[0].cs_change = 0;
-        num_tr++;
-    }
-
-    if((out2_buffer != NULL) && (num_out2_bytes != 0))
-    {
-        mesg[1].tx_buf = (unsigned long)out2_buffer;
-        mesg[1].rx_buf = (unsigned long)NULL;
-        mesg[1].len = num_out2_bytes;
-        num_tr++;
-    }
-
-    if(num_tr > 0)
-    {
-        ret = ioctl(global_fd, SPI_IOC_MESSAGE(num_tr), mesg);
-        if(ret == 1)
-        {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
 void old_transfer(uint8_t const *tx, uint8_t const *rx, size_t len)
 {
 	int ret;
@@ -203,15 +131,140 @@ void old_transfer(uint8_t const *tx, uint8_t const *rx, size_t len)
 	}
 
 	ret = ioctl(global_fd, SPI_IOC_MESSAGE(len), &tr);
+	//printf("ioctl returned %d\n", ret);
 	if (ret < 1)
 		pabort("can't send spi message");
-
-	/*if (verbose)
-		hex_dump(tx, len, 32, "TX");
-	hex_dump(rx, len, 32, "RX");*/
 }
 
 
+int write_read(uint32_t num_out_bytes, uint8_t *out_buffer,
+             uint32_t num_in_bytes, uint8_t *in_buffer)
+{
+
+    uint8_t dummy[256];
+    memset((void *)dummy, 0, 256);
+
+    old_transfer(out_buffer, dummy, 1);
+    memset((void *)dummy, 0, 256);
+    old_transfer(dummy, in_buffer, 1);
+    return 1;
+
+
+
+
+
+
+    struct spi_ioc_transfer mesg[2] = { 0, };
+    uint8_t num_tr = 0;
+    int ret;
+
+    // initialize memory
+    for (int i = 0; i < 2; i++) {
+        memset((void *)&(mesg[i]), 0, sizeof(struct spi_ioc_transfer));
+    }
+
+    if((out_buffer != NULL) && (num_out_bytes != 0))
+    {
+        mesg[0].tx_buf = (uint64_t)out_buffer;
+        mesg[0].rx_buf = (uint64_t)dummy;
+        mesg[0].len = num_out_bytes;
+        mesg[0].speed_hz = 100000;
+        mesg[0].delay_usecs = 0;
+        mesg[0].bits_per_word = 8;
+        mesg[0].cs_change = 0;
+        num_tr++;
+    }
+
+    if((in_buffer != NULL) && (num_in_bytes != 0))
+    {
+        mesg[1].tx_buf = (unsigned long)dummy;
+        mesg[1].rx_buf = (unsigned long)in_buffer;
+        mesg[1].len = num_in_bytes;
+        mesg[1].speed_hz = 100000;
+        mesg[1].delay_usecs = 0;
+        mesg[1].bits_per_word = 8;
+        mesg[1].cs_change = 1;
+        num_tr++;
+    }
+
+    if(num_tr > 0)
+    {
+        // pass into SPI IOC MESSAGE the number of transfers
+        ret = ioctl(global_fd, SPI_IOC_MESSAGE(2), &mesg);
+        printf("ioctl returned %d\n", ret);
+        if(ret == 1)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int write_write(uint32_t num_out1_bytes, uint8_t *out1_buffer,
+             uint32_t num_out2_bytes, uint8_t *out2_buffer)
+{
+    uint8_t dummy[256];
+    memset((void *)dummy, 0, 256);
+
+
+    old_transfer(out1_buffer, dummy, num_out1_bytes);
+    old_transfer(out2_buffer, dummy, num_out2_bytes);
+    return 1;
+
+
+
+
+
+
+
+
+    struct spi_ioc_transfer mesg[2] = { 0, };
+    for (int i = 0; i < 2; i++) {
+        memset((void *)&(mesg[i]), 0, sizeof(struct spi_ioc_transfer));
+    }
+
+    uint8_t num_tr = 0;
+    int ret;
+
+
+    if((out1_buffer != NULL) && (num_out1_bytes != 0))
+    {
+        mesg[0].tx_buf = (uint64_t)out1_buffer;
+        mesg[0].rx_buf = (uint64_t)dummy;
+        mesg[0].len = num_out1_bytes;
+        mesg[0].speed_hz = 100000;
+        mesg[0].delay_usecs = 0;
+        mesg[0].bits_per_word = 8;
+        mesg[0].cs_change = 0;
+        num_tr++;
+    }
+
+    if((out2_buffer != NULL) && (num_out2_bytes != 0))
+    {
+        mesg[1].tx_buf = (uint64_t)out2_buffer;
+        mesg[1].rx_buf = (uint64_t)dummy;
+        mesg[1].len = num_out2_bytes;
+        mesg[1].speed_hz = 100000;
+        mesg[1].delay_usecs = 0;
+        mesg[1].bits_per_word = 8;
+        mesg[1].cs_change = 1;
+        num_tr++;
+    }
+
+    if(num_tr > 0)
+    {
+        // pass into SPI IOC MESSAGE the number of transfers
+        ret = ioctl(global_fd, SPI_IOC_MESSAGE(2), &mesg);
+        printf("ioctl returned %d\n", ret);
+        if(ret == 1)
+        {
+            return 1;
+        }
+    }
+
+    return 0;
+}
 
 void init_spi()
 {

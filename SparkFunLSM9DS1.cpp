@@ -32,6 +32,7 @@ extern "C" {
   //#include "lsm9ds1.h"
   //#include "libi2c.h"
   #include "spidev_test.h"
+  #include "jetsonGPIO.h"
 }
 
 // Sensor Sensitivity Constants
@@ -68,6 +69,18 @@ LSM9DS1::~LSM9DS1()
 void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 {
     cout << "Init Gyro using SPI!" << endl;
+
+    int redLED = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
+    int greenLED = 481; // TODO refactor - gpio481 is pin 18
+
+    gpioUnexport(redLED);
+    gpioUnexport(greenLED);
+    gpioExport(redLED);
+    gpioExport(greenLED);
+
+    gpioSetDirection(redLED, outputPin);
+    gpioSetDirection(greenLED, outputPin);
+
 	gx = 10;
 	gy = 20;
 	gz = 30;
@@ -184,7 +197,7 @@ uint16_t LSM9DS1::begin()
 	uint8_t xgTest = xgReadByte(WHO_AM_I_XG);	// Read the accel/mag WHO_AM_I
 	uint16_t whoAmICombined = (xgTest << 8) | mTest;
 
-	cout << "gyro who am I: " << to_string(mTest) << ", accel who am I: " << to_string(xgTest) << endl;
+	cout << "who am I Gyro: " << (uint32_t)mTest << ", accel: " << (uint32_t)xgTest << endl;
 	if (whoAmICombined != ((WHO_AM_I_AG_RSP << 8) | WHO_AM_I_M_RSP)) {
 	    cout << "Who am I test FAILED, ignore" << endl;
 		//return 0;
@@ -339,13 +352,14 @@ void LSM9DS1::initAccel()
 	xgWriteByte(CTRL_REG7_XL, tempRegValue);
 }
 
-// This is a function that uses the FIFO to accumulate sample of accelerometer and gyro data, average
-// them, scales them to  gs and deg/s, respectively, and then passes the biases to the main sketch
-// for subtraction from all subsequent data. There are no gyro and accelerometer bias registers to store
-// the data as there are in the ADXL345, a precursor to the LSM9DS0, or the MPU-9150, so we have to
-// subtract the biases ourselves. This results in a more accurate measurement in general and can
-// remove errors due to imprecise or varying initial placement. Calibration of sensor data in this manner
-// is good practice.
+// This is a function that uses the FIFO to accumulate sample of accelerometer and gyro
+// data, average them, scales them to  gs and deg/s, respectively, and then passes the
+// biases to the main sketch for subtraction from all subsequent data. There are no gyro
+// and accelerometer bias registers to store the data as there are in the ADXL345, a
+// precursor to the LSM9DS0, or the MPU-9150, so we have to subtract the biases
+// ourselves. This results in a more accurate measurement in general and can remove
+// errors due to imprecise or varying initial placement. Calibration of sensor data
+// in this manner is good practice.
 void LSM9DS1::calibrate(bool autoCalc)
 {  
 	uint8_t data[6] = {0, 0, 0, 0, 0, 0};
@@ -1115,6 +1129,11 @@ void LSM9DS1::initSPI()
 	// Base value of the clock is HIGH (CPOL = 1)
 	//SPI.setDataMode(SPI_MODE0);
 
+    int redLED = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
+    int greenLED = 481; // TODO refactor - gpio481 is pin 18
+    gpioSetValue(redLED, on);
+    gpioSetValue(greenLED, on);
+
 	init_spi();
 }
 
@@ -1135,10 +1154,20 @@ void LSM9DS1::SPIwriteByte(uint8_t csPin, uint8_t subAddress, uint8_t data)
 	//digitalWrite(csPin, HIGH); // Close communication
 
 
-
+    // write the chip select low to initiate communication
+    int redLED = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
+    int greenLED = 481; // TODO refactor - gpio481 is pin 18
+    gpioSetValue(redLED, off);
+    gpioSetValue(greenLED, off);
+    
     uint8_t converted = subAddress & 0x3F;
-    write_write(1, &converted, 1, &data);
+    //write_write(1, &converted, 1, &data);
 
+	old_transfer(&converted, &receive, 1);
+	old_transfer(&data, &receive, 1);
+
+    gpioSetValue(redLED, on);
+    gpioSetValue(greenLED, on);
 }
 
 uint8_t LSM9DS1::SPIreadByte(uint8_t csPin, uint8_t subAddress)
@@ -1162,6 +1191,7 @@ uint8_t LSM9DS1::SPIreadBytes(uint8_t csPin, uint8_t subAddress,
 	if ((csPin == _mAddress) && count > 1)
 		rAddress |= 0x40;
 	
+	//  ORIGINAL CODE
 	//digitalWrite(csPin, LOW); // Initiate communication
 	//SPI.transfer(rAddress);
 	//transfer(&rAddress, &receive, 1);
@@ -1174,8 +1204,26 @@ uint8_t LSM9DS1::SPIreadBytes(uint8_t csPin, uint8_t subAddress,
 	//}
 	//digitalWrite(csPin, HIGH); // Close communication
 
-    write_read(1, &rAddress, count, dest);
-	cout << "Read Byte count " << to_string(count) << endl;
+
+
+    // BFW CODE
+    int redLED = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
+    int greenLED = 481; // TODO refactor - gpio481 is pin 18 
+    gpioSetValue(redLED, off);
+    gpioSetValue(greenLED, off);
+
+    //write_read(1, &rAddress, count, dest);
+	old_transfer(&rAddress, &receive, 1);
+
+
+	for (int i = 0; i < count; i++)
+	{
+		old_transfer(0x00, &(dest[i]), 1);
+	}
+
+    gpioSetValue(redLED, on);
+    gpioSetValue(greenLED, on);
+
 	return count;
 }
 

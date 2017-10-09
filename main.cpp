@@ -15,16 +15,16 @@ int main(int argc, char** argv)
     uint16_t retval = gyro.begin();
     cout << "Gyro begin return value: " << retval << endl;
 
-    for(int i = 0; i < 30; i++) {
+    for(int i = 0; i < 5; i++) {
         // To read from the gyroscope, you must first call the
         // readGyro() function. When this exits, it'll update the
         // gx, gy, and gz variables with the most current data.
         gyro.readGyro();
-        cout << "Read X: " << hex << gyro.gx << endl;
-        cout << "Read Y: " << hex << gyro.gy << endl;
-        cout << "Read Z: " << hex << gyro.gz << endl;
+        cout << "Read X: " << hex << gyro.gx <<
+                ", Y: " << hex << gyro.gy <<
+                ", Z: " << hex << gyro.gz << endl;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 }
 
