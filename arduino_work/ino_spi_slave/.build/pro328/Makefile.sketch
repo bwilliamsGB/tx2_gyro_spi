@@ -1,0 +1,14 @@
+
+
+
+
+
+.build/pro328/src/spi_slave.cpp : src/spi_slave.ino
+	@mkdir -p .build/pro328/src
+	@echo [93msrc/spi_slave.ino[0m
+	@/usr/local/bin/ino preproc  -o $@ $^
+
+
+all : .build/pro328/src/spi_slave.cpp
+	@true
+

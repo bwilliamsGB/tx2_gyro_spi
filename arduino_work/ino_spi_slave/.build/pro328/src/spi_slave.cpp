@@ -1,4 +1,9 @@
+#include <Arduino.h>
 #include <SPI.h>
+void setup (void);
+void loop (void);
+#line 1 "src/spi_slave.ino"
+//#include <SPI.h>
 char buff [50];
 char reply_buff[] = "message reply message reply message reply\r\n";
 volatile byte index;
