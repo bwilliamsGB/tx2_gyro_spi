@@ -158,12 +158,10 @@ uint16_t LSM9DS1::begin()
 	calcaRes(); // Calculate g / ADC tick, stored in aRes variable
 	
 	// Now, initialize our hardware interface.
-	//if (settings.device.commInterface == IMU_MODE_I2C)	// If we're using I2C
-	//	initI2C();	// Initialize I2C
-	//else if (settings.device.commInterface == IMU_MODE_SPI) 	// else, if we're using SPI
-
-	settings.device.commInterface = IMU_MODE_SPI;
-    initSPI();	// Initialize SPI
+	if (settings.device.commInterface == IMU_MODE_I2C)	// If we're using I2C
+		initI2C();	// Initialize I2C
+	else if (settings.device.commInterface == IMU_MODE_SPI) 	// else, if we're using SPI
+        initSPI();	// Initialize SPI
 		
 	// To verify communication, we can read from the WHO_AM_I register of
 	// each device. Store those in a variable so we can return them.

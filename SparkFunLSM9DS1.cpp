@@ -20,7 +20,9 @@ local, and you've found our code helpful, please buy us a round!
 
 Distributed as-is; no warranty is given.
 ******************************************************************************/
+#include <chrono>
 #include <iostream>
+#include <thread>
 using namespace std;
 
 #include "SparkFunLSM9DS1.h"
@@ -70,24 +72,30 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 {
     cout << "Init Gyro using SPI!" << endl;
 
-    int redLED = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
-    int greenLED = 481; // TODO refactor - gpio481 is pin 18
+    gpio_cs_ag = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
+    gpio_cs_mi = 481; // TODO refactor - gpio481 is pin 18
 
-    gpioUnexport(redLED);
-    gpioUnexport(greenLED);
-    gpioExport(redLED);
-    gpioExport(greenLED);
+    gpioUnexport(gpio_cs_ag);
+    gpioUnexport(gpio_cs_mi);
+    gpioExport(gpio_cs_ag);
+    gpioExport(gpio_cs_mi);
 
-    gpioSetDirection(redLED, outputPin);
-    gpioSetDirection(greenLED, outputPin);
+    gpioSetDirection(gpio_cs_ag, outputPin);
+    gpioSetDirection(gpio_cs_mi, outputPin);
 
-	gx = 10;
-	gy = 20;
-	gz = 30;
+    /*for (int i = 0; i < 50; i++) {
+        gpioSetValue(gpio_cs_ag, on);
+        gpioSetValue(gpio_cs_mi, on);
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        gpioSetValue(gpio_cs_ag, off);
+        gpioSetValue(gpio_cs_mi, off);
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    }
+    return;*/
 
 	settings.device.commInterface = interface;
-	settings.device.agAddress = xgAddr;
-	settings.device.mAddress = mAddr;
+	settings.device.agAddress = gpio_cs_ag;
+	settings.device.mAddress = gpio_cs_mi;
 
 	settings.gyro.enabled = true;
 	settings.gyro.enableX = true;
@@ -1128,16 +1136,13 @@ void LSM9DS1::initSPI()
 	// Data is captured on rising edge of clock (CPHA = 0)
 	// Base value of the clock is HIGH (CPOL = 1)
 	//SPI.setDataMode(SPI_MODE0);
-
-    int redLED = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
-    int greenLED = 481; // TODO refactor - gpio481 is pin 18
-    gpioSetValue(redLED, on);
-    gpioSetValue(greenLED, on);
+    gpioSetValue(gpio_cs_ag, on);
+    gpioSetValue(gpio_cs_mi, on);
 
 	init_spi();
 }
 
-void LSM9DS1::SPIwriteByte(uint8_t csPin, uint8_t subAddress, uint8_t data)
+void LSM9DS1::SPIwriteByte(int csPin, uint8_t subAddress, uint8_t data)
 {
     uint8_t receive = 0;
 	//digitalWrite(csPin, LOW); // Initiate communication
@@ -1154,23 +1159,21 @@ void LSM9DS1::SPIwriteByte(uint8_t csPin, uint8_t subAddress, uint8_t data)
 	//digitalWrite(csPin, HIGH); // Close communication
 
 
-    // write the chip select low to initiate communication
-    int redLED = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
-    int greenLED = 481; // TODO refactor - gpio481 is pin 18
-    gpioSetValue(redLED, off);
-    gpioSetValue(greenLED, off);
-    
     uint8_t converted = subAddress & 0x3F;
     //write_write(1, &converted, 1, &data);
+
+    // write the chip select low to initiate communication
+    cout << "GPIO low: " << (int)csPin << endl;
+    gpioSetValue(csPin, off);
 
 	old_transfer(&converted, &receive, 1);
 	old_transfer(&data, &receive, 1);
 
-    gpioSetValue(redLED, on);
-    gpioSetValue(greenLED, on);
+    cout << "GPIO high: " << (int)csPin << endl;
+	gpioSetValue(csPin, on);
 }
 
-uint8_t LSM9DS1::SPIreadByte(uint8_t csPin, uint8_t subAddress)
+uint8_t LSM9DS1::SPIreadByte(int csPin, uint8_t subAddress)
 {
 	uint8_t temp;
 	// Use the multiple read function to read 1 byte. 
@@ -1179,7 +1182,7 @@ uint8_t LSM9DS1::SPIreadByte(uint8_t csPin, uint8_t subAddress)
 	return temp;
 }
 
-uint8_t LSM9DS1::SPIreadBytes(uint8_t csPin, uint8_t subAddress,
+uint8_t LSM9DS1::SPIreadBytes(int csPin, uint8_t subAddress,
 							uint8_t *dest, uint8_t count)
 {
 	// To indicate a read, set bit 0 (msb) of first byte to 1
@@ -1188,8 +1191,10 @@ uint8_t LSM9DS1::SPIreadBytes(uint8_t csPin, uint8_t subAddress,
 
 	// Mag SPI port is different. If we're reading multiple bytes, 
 	// set bit 1 to 1. The remaining six bytes are the address to be read
-	if ((csPin == _mAddress) && count > 1)
+	if ((csPin == _mAddress) && count > 1) {
+	    cout << "cs pin matches maddress and count is greater than one" << endl;
 		rAddress |= 0x40;
+	}
 	
 	//  ORIGINAL CODE
 	//digitalWrite(csPin, LOW); // Initiate communication
@@ -1207,23 +1212,21 @@ uint8_t LSM9DS1::SPIreadBytes(uint8_t csPin, uint8_t subAddress,
 
 
     // BFW CODE
-    int redLED = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
-    int greenLED = 481; // TODO refactor - gpio481 is pin 18 
-    gpioSetValue(redLED, off);
-    gpioSetValue(greenLED, off);
+    cout << "GPIO low: " << (int)csPin << endl;
+    gpioSetValue(csPin, off);
 
     //write_read(1, &rAddress, count, dest);
 	old_transfer(&rAddress, &receive, 1);
-
+    gpioSetValue(csPin, on);
 
 	for (int i = 0; i < count; i++)
 	{
 		old_transfer(0x00, &(dest[i]), 1);
+		cout << "SPI Read: 0x" << hex << (int)dest[i] << endl;
 	}
 
-    gpioSetValue(redLED, on);
-    gpioSetValue(greenLED, on);
-
+    cout << "GPIO high: " << (int)csPin << endl;
+	gpioSetValue(csPin, on);
 	return count;
 }
 

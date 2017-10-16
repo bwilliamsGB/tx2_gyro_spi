@@ -327,7 +327,9 @@ public:
 protected:	
 	// x_mAddress and gAddress store the I2C address or SPI chip select pin
 	// for each sensor.
-	uint8_t _mAddress, _xgAddress;
+	int _mAddress, _xgAddress;
+    int gpio_cs_ag;
+    int gpio_cs_mi;
 	
 	// gRes, aRes, and mRes store the current resolution for each sensor. 
 	// Units of these values would be DPS (or g's or Gs's) per ADC tick.
@@ -461,7 +463,7 @@ protected:
 	//	- csPin = The chip select pin of the slave device.
 	//	- subAddress = The register to be written to.
 	//	- data = Byte to be written to the register.
-	void SPIwriteByte(uint8_t csPin, uint8_t subAddress, uint8_t data);
+	void SPIwriteByte(int csPin, uint8_t subAddress, uint8_t data);
 	
 	// SPIreadByte() -- Read a single byte from a register over SPI.
 	// Input:
@@ -469,7 +471,7 @@ protected:
 	//	- subAddress = The register to be read from.
 	// Output:
 	//	- The byte read from the requested address.
-	uint8_t SPIreadByte(uint8_t csPin, uint8_t subAddress);
+	uint8_t SPIreadByte(int csPin, uint8_t subAddress);
 	
 	// SPIreadBytes() -- Read a series of bytes, starting at a register via SPI
 	// Input:
@@ -479,7 +481,7 @@ protected:
 	//	- count = Number of registers to be read.
 	// Output: No value is returned by the function, but the registers read are
 	// 		all stored in the *dest array given.
-	uint8_t SPIreadBytes(uint8_t csPin, uint8_t subAddress, 
+	uint8_t SPIreadBytes(int csPin, uint8_t subAddress, 
 							uint8_t * dest, uint8_t count);
 	
 	///////////////////
