@@ -14,7 +14,7 @@ int main(int argc, char** argv)
 
     uint16_t retval = gyro.begin();
     //if (retval) {
-        for(int i = 0; i < 1000; i++) {
+        for(int i = 0; i < 1; i++) {
             // To read from the gyroscope, you must first call the
             // readGyro() function. When this exits, it'll update the
             // gx, gy, and gz variables with the most current data.
@@ -26,13 +26,13 @@ int main(int argc, char** argv)
                     " " << hex << gyro.gy <<
                     " " << hex << gyro.gz << endl;
 
-            gyro.readMag();
-            cout << "Calculated Mag x: " << hex << gyro.calcMag(gyro.mx) <<
-                    " " << hex << gyro.calcMag(gyro.my) <<
-                    " " << hex << gyro.calcMag(gyro.mz) << endl;
-            cout << "Raw Mag x: " << hex << gyro.mx <<
-                    " " << hex << gyro.my <<
-                    " " << hex << gyro.mz << endl;
+            //gyro.readMag();
+            //cout << "Calculated Mag x: " << hex << gyro.calcMag(gyro.mx) <<
+            //        " " << hex << gyro.calcMag(gyro.my) <<
+            //        " " << hex << gyro.calcMag(gyro.mz) << endl;
+            //cout << "Raw Mag x: " << hex << gyro.mx <<
+            //        " " << hex << gyro.my <<
+            //        " " << hex << gyro.mz << endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
     //}

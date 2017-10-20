@@ -1212,7 +1212,6 @@ uint8_t LSM9DS1::SPIreadBytes(int csPin, uint8_t subAddress,
 
 
     // BFW CODE
-    cout << "GPIO low: " << (int)csPin << endl;
     gpioSetValue(csPin, off);
 
     //write_read(1, &rAddress, count, dest);
@@ -1222,10 +1221,9 @@ uint8_t LSM9DS1::SPIreadBytes(int csPin, uint8_t subAddress,
 	for (int i = 0; i < count; i++)
 	{
 		old_transfer(0x00, &(dest[i]), 1);
-		cout << "SPI Read: 0x" << hex << (int)dest[i] << endl;
+		cout << "SPI Read: 0x" << hex << (unsigned int)dest[i] << endl;
 	}
 
-    cout << "GPIO high: " << (int)csPin << endl;
 	gpioSetValue(csPin, on);
 	return count;
 }
