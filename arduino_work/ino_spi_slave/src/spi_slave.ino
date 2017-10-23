@@ -1,6 +1,6 @@
 #include <SPI.h>
+
 char buff [50];
-char reply_buff[] = "message reply message reply message reply\r\n";
 volatile byte index;
 volatile boolean process;
 volatile boolean got_interrupt;
@@ -17,13 +17,14 @@ void setup (void)
     // turn on interrupts
     SPCR |= _BV(SPIE);
 
-    SPDR = 0; // initialize SPI register
+    // initialize SPI data register
+    SPDR = 0;
 
     index = 0;
     process = false;
     got_interrupt = false;
     SPI.attachInterrupt();
-    //SPI.setClockDivider(SPI_CLOCK_DIV8);
+ 
     Serial.println("Slave initialized");
 }
 
@@ -39,20 +40,16 @@ ISR (SPI_STC_vect)
         buff[index++] = c;
 
         // Setup the reply
-        //SPDR = reply_buff[index];
         SPDR = answer++;
 
-        // check for the end of the word
-        //if (c == '\r' && index >= 10) {
-        //if (c == '\r' || index > sizeof(buff)) {
-            process = true;
-            index = 0;
-        //}
+        process = true;
+        index = 0;
    }
 }
 
 
-void loop (void) {
+void loop (void)
+{
     if (process) {
         process = false;
 
@@ -62,10 +59,6 @@ void loop (void) {
             Serial.print(", 0x");
         }
         Serial.println("");
-
-        // print the array on serial monitor
-        //Serial.print("Full Message received: ");
-        //Serial.println(buff);
 
         // reset buffer
         memset(buff, 0, sizeof(buff));

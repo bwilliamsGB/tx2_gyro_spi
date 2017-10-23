@@ -24,8 +24,8 @@ Distributed as-is; no warranty is given.
 #include "SparkFunLSM9DS1.h"
 #include "LSM9DS1_Registers.h"
 #include "LSM9DS1_Types.h"
-#include <Wire.h> // Wire library is used for I2C
-#include <SPI.h>  // SPI library is used for...SPI.
+#include <Wire.h>
+#include <SPI.h>
 
 // Sensor Sensitivity Constants
 // Values set according to the typical specifications provided in
@@ -158,10 +158,10 @@ uint16_t LSM9DS1::begin()
 	calcaRes(); // Calculate g / ADC tick, stored in aRes variable
 	
 	// Now, initialize our hardware interface.
-	if (settings.device.commInterface == IMU_MODE_I2C)	// If we're using I2C
-		initI2C();	// Initialize I2C
-	else if (settings.device.commInterface == IMU_MODE_SPI) 	// else, if we're using SPI
-        initSPI();	// Initialize SPI
+	if (settings.device.commInterface == IMU_MODE_I2C)
+		initI2C();
+	else if (settings.device.commInterface == IMU_MODE_SPI)
+        initSPI();
 		
 	// To verify communication, we can read from the WHO_AM_I register of
 	// each device. Store those in a variable so we can return them.
@@ -172,14 +172,9 @@ uint16_t LSM9DS1::begin()
 	if (whoAmICombined != ((WHO_AM_I_AG_RSP << 8) | WHO_AM_I_M_RSP))
 		return 0;
 	
-	// Gyro initialization stuff:
-	initGyro();	// This will "turn on" the gyro. Setting up interrupts, etc.
-	
-	// Accelerometer initialization stuff:
-	initAccel(); // "Turn on" all axes of the accel. Set up interrupts, etc.
-	
-	// Magnetometer initialization stuff:
-	initMag(); // "Turn on" all axes of the mag. Set up interrupts, etc.
+	initGyro();
+	initAccel();
+	initMag();
 
 	// Once everything is initialized, return the WHO_AM_I registers we read:
 	return whoAmICombined;
@@ -1153,28 +1148,34 @@ void LSM9DS1::I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data)
 
 uint8_t LSM9DS1::I2CreadByte(uint8_t address, uint8_t subAddress)
 {
-	uint8_t data; // `data` will store the register data	
+	uint8_t data;
 	
-	Wire.beginTransmission(address);         // Initialize the Tx buffer
-	Wire.write(subAddress);	                 // Put slave register address in Tx buffer
-	Wire.endTransmission(false);             // Send the Tx buffer, but send a restart to keep connection alive
-	Wire.requestFrom(address, (uint8_t) 1);  // Read one byte from slave register address 
+	Wire.beginTransmission(address);
+	Wire.write(subAddress);
+
+    // Send the Tx buffer, but send a restart to keep connection alive
+	Wire.endTransmission(false);
+	Wire.requestFrom(address, (uint8_t) 1);
 	
-	data = Wire.read();                      // Fill Rx buffer with result
-	return data;                             // Return data read from slave register
+	data = Wire.read();
+	return data;
 }
 
 uint8_t LSM9DS1::I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count)
 {
 	byte retVal;
-	Wire.beginTransmission(address);      // Initialize the Tx buffer
+	Wire.beginTransmission(address);
 	// Next send the register to be read. OR with 0x80 to indicate multi-read.
-	Wire.write(subAddress | 0x80);        // Put slave register address in Tx buffer
-	retVal = Wire.endTransmission(false); // Send Tx buffer, send a restart to keep connection alive
-	if (retVal != 0) // endTransmission should return 0 on success
+	// Put slave register address in Tx buffer
+	Wire.write(subAddress | 0x80);
+
+    // Send Tx buffer, send a restart to keep connection alive 
+	retVal = Wire.endTransmission(false);
+
+	if (retVal != 0)
 		return 0;
 	
-	retVal = Wire.requestFrom(address, count);  // Read bytes from slave register address 
+	retVal = Wire.requestFrom(address, count);
 	if (retVal != count)
 		return 0;
 	

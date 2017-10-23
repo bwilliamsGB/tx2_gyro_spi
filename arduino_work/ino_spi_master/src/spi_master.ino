@@ -23,6 +23,7 @@ void loop (void)
 
     Serial.println("Send Hello World");
     Serial.print("Reply: ");
+
     // send test string
     for (const char * p = "Hello, world!\r" ; c = *p; p++) {
         reply = SPI.transfer(c);
