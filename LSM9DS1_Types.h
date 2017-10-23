@@ -116,16 +116,16 @@ enum interrupt_select
 
 enum interrupt_generators
 {
-	INT_DRDY_XL = (1<<0),	 // Accelerometer data ready (INT1 & INT2)
-	INT_DRDY_G = (1<<1),	 // Gyroscope data ready (INT1 & INT2)
-	INT1_BOOT = (1<<2),	 // Boot status (INT1)
+	INT_DRDY_XL = (1<<0),	// Accelerometer data ready (INT1 & INT2)
+	INT_DRDY_G = (1<<1),	// Gyroscope data ready (INT1 & INT2)
+	INT1_BOOT = (1<<2),	    // Boot status (INT1)
 	INT2_DRDY_TEMP = (1<<2),// Temp data ready (INT2)
-	INT_FTH = (1<<3),		 // FIFO threshold interrupt (INT1 & INT2)
-	INT_OVR = (1<<4),		 // Overrun interrupt (INT1 & INT2)
-	INT_FSS5 = (1<<5),		 // FSS5 interrupt (INT1 & INT2)
-	INT_IG_XL = (1<<6),	 // Accel interrupt generator (INT1)
-	INT1_IG_G = (1<<7),	 // Gyro interrupt enable (INT1)
-	INT2_INACT = (1<<7),	 // Inactivity interrupt output (INT2)
+	INT_FTH = (1<<3),		// FIFO threshold interrupt (INT1 & INT2)
+	INT_OVR = (1<<4),		// Overrun interrupt (INT1 & INT2)
+	INT_FSS5 = (1<<5),		// FSS5 interrupt (INT1 & INT2)
+	INT_IG_XL = (1<<6),	    // Accel interrupt generator (INT1)
+	INT1_IG_G = (1<<7),	    // Gyro interrupt enable (INT1)
+	INT2_INACT = (1<<7),	// Inactivity interrupt output (INT2)
 };	
 
 enum accel_interrupt_generator
@@ -181,7 +181,7 @@ struct gyroSettings
 {
 	// Gyroscope settings:
 	uint8_t enabled;
-	uint16_t scale;	// Changed this to 16-bit
+	uint16_t scale;
 	uint8_t sampleRate;
 	// New gyro stuff:
 	uint8_t bandwidth;
@@ -201,10 +201,8 @@ struct gyroSettings
 struct deviceSettings
 {
     uint8_t commInterface; // Can be I2C, SPI 4-wire or SPI 3-wire
-    //uint8_t agAddress;	// I2C address or SPI CS pin
-	//uint8_t mAddress;	// I2C address or SPI CS pin
-    int agAddress;	// I2C address or SPI CS pin
-    int mAddress;	// I2C address or SPI CS pin
+    int agAddress;	       // I2C address or SPI CS pin
+    int mAddress;	       // I2C address or SPI CS pin
 };
 
 struct accelSettings
