@@ -30,9 +30,6 @@ using namespace std;
 #include "LSM9DS1_Types.h"
 
 extern "C" {
-  //#include "registers.h"
-  //#include "lsm9ds1.h"
-  //#include "libi2c.h"
   #include "spidev_test.h"
   #include "jetsonGPIO.h"
 }
@@ -72,8 +69,8 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 {
     cout << "Init Gyro using SPI!" << endl;
 
-    gpio_cs_ag = 398;   // TODO refactor - gpio398 is pin 29 on tx2 J21 header
-    gpio_cs_mi = 481; // TODO refactor - gpio481 is pin 18
+    gpio_cs_ag = 398; // gpio398 is pin 29 on tx2 J21 header
+    gpio_cs_mi = 481; // gpio481 is pin 18
 
     gpioUnexport(gpio_cs_ag);
     gpioUnexport(gpio_cs_mi);
@@ -83,16 +80,6 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
     gpioSetDirection(gpio_cs_ag, outputPin);
     gpioSetDirection(gpio_cs_mi, outputPin);
 
-    /*for (int i = 0; i < 50; i++) {
-        gpioSetValue(gpio_cs_ag, on);
-        gpioSetValue(gpio_cs_mi, on);
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        gpioSetValue(gpio_cs_ag, off);
-        gpioSetValue(gpio_cs_mi, off);
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    }
-    return;*/
-
 	settings.device.commInterface = interface;
 	settings.device.agAddress = gpio_cs_ag;
 	settings.device.mAddress = gpio_cs_mi;
@@ -101,19 +88,23 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 	settings.gyro.enableX = true;
 	settings.gyro.enableY = true;
 	settings.gyro.enableZ = true;
+
 	// gyro scale can be 245, 500, or 2000
 	settings.gyro.scale = 245;
+
 	// gyro sample rate: value between 1-6
 	// 1 = 14.9    4 = 238
 	// 2 = 59.5    5 = 476
 	// 3 = 119     6 = 952
 	settings.gyro.sampleRate = 6;
+
 	// gyro cutoff frequency: value between 0-3
 	// Actual value of cutoff frequency depends
 	// on sample rate.
 	settings.gyro.bandwidth = 0;
 	settings.gyro.lowPowerEnable = false;
 	settings.gyro.HPFEnable = false;
+
 	// Gyro HPF cutoff frequency: value between 0-9
 	// Actual value depends on sample rate. Only applies
 	// if gyroHPFEnable is true.
@@ -128,19 +119,23 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 	settings.accel.enableX = true;
 	settings.accel.enableY = true;
 	settings.accel.enableZ = true;
+
 	// accel scale can be 2, 4, 8, or 16
 	settings.accel.scale = 2;
+
 	// accel sample rate can be 1-6
 	// 1 = 10 Hz    4 = 238 Hz
 	// 2 = 50 Hz    5 = 476 Hz
 	// 3 = 119 Hz   6 = 952 Hz
 	settings.accel.sampleRate = 6;
+
 	// Accel cutoff freqeuncy can be any value between -1 - 3. 
 	// -1 = bandwidth determined by sample rate
 	// 0 = 408 Hz   2 = 105 Hz
 	// 1 = 211 Hz   3 = 50 Hz
 	settings.accel.bandwidth = -1;
 	settings.accel.highResEnable = false;
+
 	// accelHighResBandwidth can be any value between 0-3
 	// LP cutoff is set to a factor of sample rate
 	// 0 = ODR/50    2 = ODR/9
@@ -148,8 +143,10 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 	settings.accel.highResBandwidth = 0;
 
 	settings.mag.enabled = true;
+
 	// mag scale can be 4, 8, 12, or 16
 	settings.mag.scale = 4;
+
 	// mag data rate can be 0-7
 	// 0 = 0.625 Hz  4 = 10 Hz
 	// 1 = 1.25 Hz   5 = 20 Hz
@@ -157,12 +154,14 @@ void LSM9DS1::init(interface_mode interface, uint8_t xgAddr, uint8_t mAddr)
 	// 3 = 5 Hz      7 = 80 Hz
 	settings.mag.sampleRate = 7;
 	settings.mag.tempCompensationEnable = false;
+
 	// magPerformance can be any value between 0-3
 	// 0 = Low power mode      2 = high performance
 	// 1 = medium performance  3 = ultra-high performance
 	settings.mag.XYPerformance = 3;
 	settings.mag.ZPerformance = 3;
 	settings.mag.lowPowerEnable = false;
+
 	// magOperatingMode can be 0-2
 	// 0 = continuous conversion
 	// 1 = single-conversion
@@ -190,14 +189,13 @@ uint16_t LSM9DS1::begin()
 	_mAddress = settings.device.mAddress;
 	
 	constrainScales();
+
 	// Once we have the scale values, we can calculate the resolution
 	// of each sensor. That's what these functions are for. One for each sensor
 	calcgRes(); // Calculate DPS / ADC tick, stored in gRes variable
 	calcmRes(); // Calculate Gs / ADC tick, stored in mRes variable
 	calcaRes(); // Calculate g / ADC tick, stored in aRes variable
-	
-	// Now, initialize our hardware interface.
-	initSPI();	// Initialize SPI
+	initSPI();
 		
 	// To verify communication, we can read from the WHO_AM_I register of
 	// each device. Store those in a variable so we can return them.
@@ -205,22 +203,15 @@ uint16_t LSM9DS1::begin()
 	uint8_t xgTest = xgReadByte(WHO_AM_I_XG);	// Read the accel/mag WHO_AM_I
 	uint16_t whoAmICombined = (xgTest << 8) | mTest;
 
-	cout << "who am I Gyro: " << (uint32_t)mTest << ", accel: " << (uint32_t)xgTest << endl;
+	cout << "who am I Gyro: " << (uint32_t)mTest <<
+	        ", accel: " << (uint32_t)xgTest << endl;
 	if (whoAmICombined != ((WHO_AM_I_AG_RSP << 8) | WHO_AM_I_M_RSP)) {
-	    cout << "Who am I test FAILED, ignore" << endl;
-		//return 0;
+	    cout << "WARNING: Who am I test failed, ignore" << endl;
     }
-	
-	// Gyro initialization stuff:
-	initGyro();	// This will "turn on" the gyro. Setting up interrupts, etc.
-	
-	// Accelerometer initialization stuff:
-	initAccel(); // "Turn on" all axes of the accel. Set up interrupts, etc.
-	
-	// Magnetometer initialization stuff:
-	initMag(); // "Turn on" all axes of the mag. Set up interrupts, etc.
 
-	// Once everything is initialized, return the WHO_AM_I registers we read:
+	initGyro();
+	initAccel();
+	initMag();
 	return whoAmICombined;
 }
 
@@ -320,6 +311,7 @@ void LSM9DS1::initAccel()
 	// BW_SCAL_ODR - Bandwidth selection
 	// BW_XL[1:0] - Anti-aliasing filter bandwidth selection
 	tempRegValue = 0;
+
 	// To disable the accel, set the sampleRate bits to 0.
 	if (settings.accel.enabled)
 	{
@@ -412,7 +404,7 @@ void LSM9DS1::calibrateMag(bool loadIn)
 {
 	int i, j;
 	int16_t magMin[3] = {0, 0, 0};
-	int16_t magMax[3] = {0, 0, 0}; // The road warrior
+	int16_t magMax[3] = {0, 0, 0};
 	
 	for (i=0; i<128; i++)
 	{
@@ -549,8 +541,9 @@ uint8_t LSM9DS1::magAvailable(lsm9ds1_axis axis)
 
 void LSM9DS1::readAccel()
 {
-	uint8_t temp[6] = {0, 0, 0, 0, 0, 0}; // We'll read six bytes from the accelerometer into temp	
-	if ( xgReadBytes(OUT_X_L_XL, temp, 6) == 6 ) // Read 6 bytes, beginning at OUT_X_L_XL
+    // Read 6 bytes, beginning at OUT_X_L_XL
+	uint8_t temp[6] = {0, 0, 0, 0, 0, 0};
+	if ( xgReadBytes(OUT_X_L_XL, temp, 6) == 6 )
 	{
 		ax = (temp[1] << 8) | temp[0]; // Store x-axis values into ax
 		ay = (temp[3] << 8) | temp[2]; // Store y-axis values into ay
@@ -582,8 +575,9 @@ int16_t LSM9DS1::readAccel(lsm9ds1_axis axis)
 
 void LSM9DS1::readMag()
 {
-	uint8_t temp[6]; // We'll read six bytes from the mag into temp	
-	if ( mReadBytes(OUT_X_L_M, temp, 6) == 6) // Read 6 bytes, beginning at OUT_X_L_M
+    // Read 6 bytes, beginning at OUT_X_L_M
+	uint8_t temp[6];
+	if ( mReadBytes(OUT_X_L_M, temp, 6) == 6)
 	{
 		mx = (temp[1] << 8) | temp[0]; // Store x-axis values into mx
 		my = (temp[3] << 8) | temp[2]; // Store y-axis values into my
@@ -603,8 +597,9 @@ int16_t LSM9DS1::readMag(lsm9ds1_axis axis)
 
 void LSM9DS1::readTemp()
 {
-	uint8_t temp[2]; // We'll read two bytes from the temperature sensor into temp	
-	if ( xgReadBytes(OUT_TEMP_L, temp, 2) == 2 ) // Read 2 bytes, beginning at OUT_TEMP_L
+    // Read 2 bytes, beginning at OUT_TEMP_L
+	uint8_t temp[2];
+	if ( xgReadBytes(OUT_TEMP_L, temp, 2) == 2 )
 	{
 		temperature = ((int16_t)temp[1] << 8) | temp[0];
 	}
@@ -612,8 +607,9 @@ void LSM9DS1::readTemp()
 
 void LSM9DS1::readGyro()
 {
-	uint8_t temp[6]; // We'll read six bytes from the gyro into temp
-	if ( xgReadBytes(OUT_X_L_G, temp, 6) == 6) // Read 6 bytes, beginning at OUT_X_L_G
+    // Read 6 bytes, beginning at OUT_X_L_G
+	uint8_t temp[6];
+	if ( xgReadBytes(OUT_X_L_G, temp, 6) == 6)
 	{
 		gx = (temp[1] << 8) | temp[0]; // Store x-axis values into gx
 		gy = (temp[3] << 8) | temp[2]; // Store y-axis values into gy
@@ -722,6 +718,7 @@ void LSM9DS1::setMagScale(uint8_t mScl)
 {
 	// We need to preserve the other bytes in CTRL_REG6_XM. So, first read it:
 	uint8_t temp = mReadByte(CTRL_REG2_M);
+
 	// Then mask out the mag scale bits:
 	temp &= 0xFF^(0x3 << 5);
 	
@@ -761,11 +758,14 @@ void LSM9DS1::setGyroODR(uint8_t gRate)
 	{
 		// We need to preserve the other bytes in CTRL_REG1_G. So, first read it:
 		uint8_t temp = xgReadByte(CTRL_REG1_G);
+
 		// Then mask out the gyro ODR bits:
 		temp &= 0xFF^(0x7 << 5);
 		temp |= (gRate & 0x07) << 5;
+
 		// Update our settings struct
 		settings.gyro.sampleRate = gRate & 0x07;
+
 		// And write the new register value back into CTRL_REG1_G:
 		xgWriteByte(CTRL_REG1_G, temp);
 	}
@@ -778,11 +778,14 @@ void LSM9DS1::setAccelODR(uint8_t aRate)
 	{
 		// We need to preserve the other bytes in CTRL_REG1_XM. So, first read it:
 		uint8_t temp = xgReadByte(CTRL_REG6_XL);
+
 		// Then mask out the accel ODR bits:
 		temp &= 0x1F;
+
 		// Then shift in our new ODR bits:
 		temp |= ((aRate & 0x07) << 5);
 		settings.accel.sampleRate = aRate & 0x07;
+
 		// And write the new register value back into CTRL_REG1_XM:
 		xgWriteByte(CTRL_REG6_XL, temp);
 	}
@@ -792,11 +795,14 @@ void LSM9DS1::setMagODR(uint8_t mRate)
 {
 	// We need to preserve the other bytes in CTRL_REG5_XM. So, first read it:
 	uint8_t temp = mReadByte(CTRL_REG1_M);
+
 	// Then mask out the mag ODR bits:
 	temp &= 0xFF^(0x7 << 2);
+
 	// Then shift in our new ODR bits:
 	temp |= ((mRate & 0x07) << 2);
 	settings.mag.sampleRate = mRate & 0x07;
+
 	// And write the new register value back into CTRL_REG5_XM:
 	mWriteByte(CTRL_REG1_M, temp);
 }
@@ -1120,22 +1126,6 @@ uint8_t LSM9DS1::mReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count)
 
 void LSM9DS1::initSPI()
 {
-	//pinMode(_xgAddress, OUTPUT);
-	//digitalWrite(_xgAddress, HIGH);
-	//pinMode(_mAddress, OUTPUT);
-	//digitalWrite(_mAddress, HIGH);
-	
-	//SPI.begin();
-
-	// Maximum SPI frequency is 10MHz, could divide by 2 here:
-	//SPI.setClockDivider(SPI_CLOCK_DIV2);
-
-	// Data is read and written MSb first.
-	//SPI.setBitOrder(MSBFIRST);
-
-	// Data is captured on rising edge of clock (CPHA = 0)
-	// Base value of the clock is HIGH (CPOL = 1)
-	//SPI.setDataMode(SPI_MODE0);
     gpioSetValue(gpio_cs_ag, on);
     gpioSetValue(gpio_cs_mi, on);
 
@@ -1145,31 +1135,14 @@ void LSM9DS1::initSPI()
 void LSM9DS1::SPIwriteByte(int csPin, uint8_t subAddress, uint8_t data)
 {
     uint8_t receive = 0;
-	//digitalWrite(csPin, LOW); // Initiate communication
-	
-	// If write, bit 0 (MSB) should be 0
-	// If single write, bit 1 should be 0
-	//SPI.transfer(subAddress & 0x3F); // Send Address
-	// BFW  uint8_t converted = subAddress & 0x3F;
-	// BFW transfer(&converted, &receive, 1);
-	
-	//SPI.transfer(data); // Send data
-	// BFW transfer(&data, &receive, 1);
-	
-	//digitalWrite(csPin, HIGH); // Close communication
-
-
     uint8_t converted = subAddress & 0x3F;
-    //write_write(1, &converted, 1, &data);
 
     // write the chip select low to initiate communication
-    cout << "GPIO low: " << (int)csPin << endl;
     gpioSetValue(csPin, off);
 
 	old_transfer(&converted, &receive, 1);
 	old_transfer(&data, &receive, 1);
 
-    cout << "GPIO high: " << (int)csPin << endl;
 	gpioSetValue(csPin, on);
 }
 
@@ -1196,25 +1169,9 @@ uint8_t LSM9DS1::SPIreadBytes(int csPin, uint8_t subAddress,
 		rAddress |= 0x40;
 	}
 	
-	//  ORIGINAL CODE
-	//digitalWrite(csPin, LOW); // Initiate communication
-	//SPI.transfer(rAddress);
-	//transfer(&rAddress, &receive, 1);
-
-
-	//for (int i = 0; i < count; i++)
-	//{
-		//dest[i] = SPI.transfer(0x00); // Read into destination array
-	//	transfer(0x00, &(dest[i]), 1);
-	//}
-	//digitalWrite(csPin, HIGH); // Close communication
-
-
-
     // BFW CODE
     gpioSetValue(csPin, off);
 
-    //write_read(1, &rAddress, count, dest);
 	old_transfer(&rAddress, &receive, 1);
     gpioSetValue(csPin, on);
 
@@ -1230,49 +1187,19 @@ uint8_t LSM9DS1::SPIreadBytes(int csPin, uint8_t subAddress,
 
 void LSM9DS1::initI2C()
 {
-	//Wire.begin();	// Initialize I2C library
 }
 
-// Wire.h read and write protocols
 void LSM9DS1::I2CwriteByte(uint8_t address, uint8_t subAddress, uint8_t data)
 {
-	//Wire.beginTransmission(address);  // Initialize the Tx buffer
-	//Wire.write(subAddress);           // Put slave register address in Tx buffer
-	//Wire.write(data);                 // Put data in Tx buffer
-	//Wire.endTransmission();           // Send the Tx buffer
 }
 
 uint8_t LSM9DS1::I2CreadByte(uint8_t address, uint8_t subAddress)
 {
-	uint8_t data = 0x55; // `data` will store the register data	
-	
-	//Wire.beginTransmission(address);         // Initialize the Tx buffer
-	//Wire.write(subAddress);	                 // Put slave register address in Tx buffer
-	//Wire.endTransmission(false);             // Send the Tx buffer, but send a restart to keep connection alive
-	//Wire.requestFrom(address, (uint8_t) 1);  // Read one byte from slave register address 
-	
-	//data = Wire.read();                      // Fill Rx buffer with result
-	return data;                             // Return data read from slave register
+	return 0;
 }
 
 uint8_t LSM9DS1::I2CreadBytes(uint8_t address, uint8_t subAddress, uint8_t * dest, uint8_t count)
 {
-	//byte retVal;
-	//Wire.beginTransmission(address);      // Initialize the Tx buffer
-	// Next send the register to be read. OR with 0x80 to indicate multi-read.
-	//Wire.write(subAddress | 0x80);        // Put slave register address in Tx buffer
-	//retVal = Wire.endTransmission(false); // Send Tx buffer, send a restart to keep connection alive
-	//if (retVal != 0) // endTransmission should return 0 on success
-	//	return 0;
-	
-	//retVal = Wire.requestFrom(address, count);  // Read bytes from slave register address 
-	//if (retVal != count)
-	//	return 0;
-	
-	//for (int i=0; i<count;)
-	//	dest[i++] = Wire.read();
-	
-	//return count;
 	return 0;
 }
 
